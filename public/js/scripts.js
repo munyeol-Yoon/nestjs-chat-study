@@ -7,13 +7,44 @@ const helloStrangerElement = getElementById('hello_stranger');
 const chattingBoxElement = getElementById('chatting_box');
 const formElement = getElementById('chat_form');
 
-// 브로드 캐스트
+// 브로드 캐스트 global socket handler
 socket.on('user_connected', (username) => {
-  console.log(`${username} connected`);
+  drawNewChat(`${username} connected`);
 });
 
+socket.on('new_chat', (data) => {
+  const { chat, username } = data;
+  drawNewChat(`${username}: ${chat}`);
+});
+
+// event callback functions
+const handleSubmit = (event) => {
+  event.preventDefault(); // submit 을 할때 form 에서 이벤트 버블 새로고침을 막기 위함
+  const inputValue = event.target.elements[0].value;
+  if (inputValue !== '') {
+    socket.emit('submit_chat', inputValue);
+
+    // 화면에 그리지
+    drawNewChat(`me: ${inputValue}`);
+    event.target.elements[0].value = '';
+  }
+};
+
+// draw functions
 const drawHelloStranger = (username) =>
   (helloStrangerElement.innerText = `안녕 ${username}`);
+
+const drawNewChat = (message) => {
+  console.log(message);
+  const wrapperChatBox = document.createElement('div');
+  const chatBox = `
+        <div>
+            ${message}
+        </div>
+    `;
+  wrapperChatBox.innerHTML = chatBox;
+  chattingBoxElement.append(wrapperChatBox);
+};
 
 function helloUser() {
   const username = prompt('이름이 뭐에욥?');
@@ -35,6 +66,8 @@ function helloUser() {
 
 function init() {
   helloUser();
+  // 이벤트 연결
+  formElement.addEventListener('submit', handleSubmit);
 }
 
 init();

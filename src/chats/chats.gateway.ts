@@ -58,6 +58,8 @@ export class ChatsGateway
 
   handleConnection(@ConnectedSocket() socket: Socket) {
     this.logger.log(`connected: ${socket.id} ${socket.nsp.name}`);
+    // 새로운 연결이 발생할 때마다 리스너를 초기화
+    socket.removeAllListeners();
   }
 
   afterInit() {
@@ -81,6 +83,17 @@ export class ChatsGateway
     socket.broadcast.emit('user_connected', username);
 
     return username;
+  }
+
+  @SubscribeMessage('submit_chat') // socket 이벤트 받기
+  handleSubmitChat(
+    @MessageBody() chat: string,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    socket.broadcast.emit('new_chat', {
+      chat,
+      username: socket.id,
+    }); // 연결된 모든 소켓에 보내기
   }
 }
 
