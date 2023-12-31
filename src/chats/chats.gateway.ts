@@ -73,9 +73,14 @@ export class ChatsGateway
     // console.log(socket);
     console.log(socket.id); // id 는 연결이 끊기기 전까지 유지
 
-    socket.emit('hello_user', '안녕 ' + username);
+    // socket.emit('hello_user', '안녕 ' + username);
 
-    return '안녕 세상아';
+    // username 을 db에 적재
+
+    // 브로드캐스팅 : 연결된 네트워크 전체에 뿌려준다.
+    socket.broadcast.emit('user_connected', username);
+
+    return username;
   }
 }
 
