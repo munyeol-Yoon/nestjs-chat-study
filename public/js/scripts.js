@@ -1,4 +1,4 @@
-const socket = io('/'); // socket.io 클라이언트의 인스턴스를 초기화한다. 서버와의 연결
+const socket = io('/chattings'); // socket.io 클라이언트의 인스턴스를 초기화한다. 서버와의 연결
 
 const getElementById = (id) => document.getElementById(id) || null;
 
