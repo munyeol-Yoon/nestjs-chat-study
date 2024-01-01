@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import {
   ConnectedSocket,
   MessageBody,
@@ -9,6 +10,9 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
+import { Chatting } from './models/chattings.model';
+import { Socket as SocketModel } from './models/sockets.model';
+import { Model } from 'mongoose';
 
 /**
  * Gateway lifecycle
@@ -48,11 +52,22 @@ export class ChatsGateway
 {
   private logger = new Logger('chat');
 
-  constructor() {
+  constructor(
+    @InjectModel(Chatting.name) private readonly chattingModel: Model<Chatting>,
+    @InjectModel(SocketModel.name)
+    private readonly socketModel: Model<SocketModel>,
+  ) {
     this.logger.log('constructor');
   }
 
-  handleDisconnect(@ConnectedSocket() socket: Socket) {
+  async handleDisconnect(@ConnectedSocket() socket: Socket) {
+    const user = await this.socketModel.findOne({ id: socket.id });
+
+    if (user) {
+      socket.broadcast.emit('disconnect_user', user.username);
+      await this.socketModel.deleteOne({ _id: user._id });
+    }
+
     this.logger.log(`disconnected: ${socket.id} ${socket.nsp.name}`);
   }
 
@@ -67,15 +82,30 @@ export class ChatsGateway
   }
 
   @SubscribeMessage('new_user') // socket 이벤트 받기
-  handleNewUser(
+  async handleNewUser(
     @MessageBody() username: string,
     @ConnectedSocket() socket: Socket,
   ) {
-    console.log(username);
+    // console.log(username);
     // console.log(socket);
-    console.log(socket.id); // id 는 연결이 끊기기 전까지 유지
+    // console.log(socket.id); // id 는 연결이 끊기기 전까지 유지
 
     // socket.emit('hello_user', '안녕 ' + username);
+
+    const exist = await this.socketModel.exists({ username }); // username 이 데이터에 존재하는지 true, false
+
+    if (exist) {
+      username = `${username}_${Math.floor(Math.random() * 100)}`;
+      await this.socketModel.create({
+        id: socket.id,
+        username,
+      });
+    } else {
+      await this.socketModel.create({
+        id: socket.id,
+        username,
+      });
+    }
 
     // username 을 db에 적재
 
@@ -86,13 +116,25 @@ export class ChatsGateway
   }
 
   @SubscribeMessage('submit_chat') // socket 이벤트 받기
-  handleSubmitChat(
+  async handleSubmitChat(
     @MessageBody() chat: string,
     @ConnectedSocket() socket: Socket,
   ) {
+    const socketObj = await this.socketModel.findOne({ id: socket.id });
+
+    if (!socketObj) {
+      console.log(`Socket object not found for id : ${socket.id}`);
+      return;
+    }
+
+    await this.chattingModel.create({
+      user: socketObj,
+      chat,
+    });
+
     socket.broadcast.emit('new_chat', {
       chat,
-      username: socket.id,
+      username: socketObj.username,
     }); // 연결된 모든 소켓에 보내기
   }
 }

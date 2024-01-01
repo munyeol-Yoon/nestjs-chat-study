@@ -17,6 +17,10 @@ socket.on('new_chat', (data) => {
   drawNewChat(`${username}: ${chat}`);
 });
 
+socket.on('disconnect_user', (username) =>
+  drawNewChat(`${username} disconnect`),
+);
+
 // event callback functions
 const handleSubmit = (event) => {
   event.preventDefault(); // submit 을 할때 form 에서 이벤트 버블 새로고침을 막기 위함
