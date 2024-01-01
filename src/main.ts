@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path'; // node 의 path 모듈에서 함수로, 크로스 플랫폼 파일 경로를 생성하는데 사용
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -18,6 +19,8 @@ async function bootstrap() {
   app.useStaticAssets(join(__dirname, '..', 'public')); // js css 정적 파일 서빙
   app.setBaseViewsDir(join(__dirname, '..', 'views')); // 템플릿엔진 위치
   app.setViewEngine('hbs'); // viewEngine 지정
+
+  app.useGlobalPipes(new ValidationPipe());
 
   await app.listen(3000);
 }
